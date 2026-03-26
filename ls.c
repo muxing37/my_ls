@@ -396,8 +396,9 @@ void output(int z,int filec,struct file pain,struct file *info) {
             }
             putchar('\n');
         }
-    } else if(op.R==0 || (filec<50 || time(NULL)-start<30)) {
+    } else if(op.l==0) {
         struct winsize ws;
+        int *lens=malloc(filec*sizeof(int));
         int w;
         if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws)==0 && ws.ws_col>0) {
             w=ws.ws_col;
@@ -406,7 +407,8 @@ void output(int z,int filec,struct file pain,struct file *info) {
         }
         int total=0;
         for(i=0;i<filec;i++) {
-            total=total+getwide(info[i].name)+mblocks+mino+op.s+op.i+qu;
+            lens[i]=getwide(info[i].name);
+            total=total+lens[i]+mblocks+mino+op.s+op.i+qu;
             if(i!=filec-1) {
                 total=total+2;
             }
@@ -424,12 +426,13 @@ void output(int z,int filec,struct file pain,struct file *info) {
         } else {
             int maxlen=0;
             for(i=0;i<filec;i++) {
-                int len=getwide(info[i].name)+mblocks+mino+op.s+op.i+qu;
+                int len=lens[i]+mblocks+mino+op.s+op.i+qu;
                 if(len>maxlen) maxlen=len;
             }
             int col,row;
-            int *colwide=calloc(filec,sizeof(int));
-            for(col=filec;col>=1;col--) {
+            int *colwide=calloc(w/3+1,sizeof(int));
+            
+            for(col=w/3+1;col>=1;col--) {
                 row=(filec+col-1)/col;
                 int total=0;
                 for(i=0;i<col;i++) {
@@ -437,7 +440,7 @@ void output(int z,int filec,struct file pain,struct file *info) {
                     for (j=0;j<row;j++) {
                         int idx=i*row+j;
                         if(idx>=filec) break;
-                        int len=getwide(info[idx].name)+mblocks+mino+op.s+op.i+qu;
+                        int len=lens[idx]+mblocks+mino+op.s+op.i+qu;
                         if(len>wide) wide=len;
                     }
                     colwide[i]=wide;
@@ -454,7 +457,7 @@ void output(int z,int filec,struct file pain,struct file *info) {
                     if(op.s==1) printf("%*lu ",mblocks,info[idx].im->st_blocks);
                     printc(qu,ifqute(info[idx].name),info[idx]);
                     if (j!=col-1 && idx+row<filec) {
-                        int m=colwide[j]-(getwide(info[idx].name)+mblocks+mino+op.s+op.i+qu);
+                        int m=colwide[j]-(lens[idx]+mblocks+mino+op.s+op.i+qu);
                         while(m>0) {
                             putchar(' ');
                             m--;
@@ -468,6 +471,7 @@ void output(int z,int filec,struct file pain,struct file *info) {
                 putchar('\n');
             }
             free(colwide);
+            free(lens);
         }
     } else {
         struct winsize ws;
